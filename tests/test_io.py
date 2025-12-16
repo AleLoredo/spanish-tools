@@ -1,7 +1,14 @@
 import unittest
 from unittest.mock import patch, MagicMock
 import sys
+import os
 from spa_text_utils.io import cargar_csv_es, procesar_csv_es
+
+try:
+    import pandas as pd
+    PANDAS_INSTALLED = True
+except ImportError:
+    PANDAS_INSTALLED = False
 
 class TestIO(unittest.TestCase):
 
@@ -90,6 +97,51 @@ class TestIO(unittest.TestCase):
         with patch.dict('sys.modules', {'pandas': mock_pd}):
             result = procesar_csv_es('no_existe.csv')
             self.assertIsNone(result)
+
+    @unittest.skipUnless(PANDAS_INSTALLED, "Pandas not installed")
+    def test_integration_real_file(self):
+        """
+        Integration test using the real 'tests/test.csv' file.
+        """
+        # Construct path to tests/test.csv
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        csv_path = os.path.join(current_dir, 'test.csv')
+        
+        # Verify file exists
+        if not os.path.exists(csv_path):
+            self.skipTest(f"Test file not found: {csv_path}")
+
+        # Process the CSV
+        # The file uses comma separator based on inspection
+        df = procesar_csv_es(
+            csv_path, 
+            columnas_texto_a_limpiar=['Nombre'], 
+            separador=','
+        )
+        
+        self.assertIsNotNone(df)
+        
+        # Verify header cleaning
+        # 'Apellido(s)' -> 'apellido_s'
+        self.assertIn('apellido_s', df.columns)
+        self.assertIn('nombre', df.columns)
+        self.assertIn('direccion_de_correo', df.columns)
+        
+        # Verify text cleaning in 'Nombre' column
+        # "Valentín Darío" -> "valentin dario"
+        # We need to find the row where apellido_s is 'Camaño' (or 'cama_o' if headers were cleaned? No, values are not cleaned unless specified)
+        # Wait, we didn't clean 'Apellido(s)', only 'Nombre'.
+        # But wait, 'Camaño' might be loaded as is.
+        
+        # Let's check the first row content
+        first_row = df.iloc[0]
+        # 'Valentín Darío' should be cleaned to 'valentin dario'
+        self.assertEqual(first_row['nombre'], 'valentin dario')
+        
+        # 'Camaño' in 'apellido_s' column should remain as is because we didn't ask to clean it
+        # However, pandas might read it with encoding issues if not handled, but we use utf-8 by default.
+        # The file content viewed earlier showed "Camaño".
+        self.assertEqual(first_row['apellido_s'], 'Camaño')
 
 if __name__ == '__main__':
     unittest.main()
