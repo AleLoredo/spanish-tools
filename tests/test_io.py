@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 import sys
 import os
-from spa_text_utils.io import cargar_csv_es, procesar_csv_es
+from spanish_tools.io import cargar_csv_es, procesar_csv_es
 
 try:
     import pandas as pd

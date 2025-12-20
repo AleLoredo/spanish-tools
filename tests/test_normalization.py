@@ -1,5 +1,5 @@
 import unittest
-from spa_text_utils.normalization import limpiar_cabeceras_string, convertir_a_float_es, convertir_a_fecha_es
+from spanish_tools.normalization import limpiar_cabeceras_string, convertir_a_float_es, convertir_a_fecha_es
 
 class TestNormalization(unittest.TestCase):
 

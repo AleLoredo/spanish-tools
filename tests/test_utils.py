@@ -6,7 +6,7 @@ import tempfile
 import io
 import sys
 import os
-from spa_text_utils.utils import asegurar_directorio, descargar_archivo, ayuda_spa_text_utils
+from spanish_tools.utils import asegurar_directorio, descargar_archivo, ayuda_spanish_tools
 from urllib.error import URLError, HTTPError
 
 class TestUtils(unittest.TestCase):
@@ -75,16 +75,16 @@ class TestUtils(unittest.TestCase):
         finally:
             os.chdir(original_cwd)
 
-    def test_ayuda_spa_text_utils(self):
+    def test_ayuda_spanish_tools(self):
         captured_output = io.StringIO()
         sys.stdout = captured_output
         try:
-            ayuda_spa_text_utils()
+            ayuda_spanish_tools()
         finally:
             sys.stdout = sys.__stdout__
         
         output = captured_output.getvalue()
-        self.assertIn("Documentación de spa_text_utils", output)
+        self.assertIn("Documentación de spanish_tools", output)
         self.assertIn("asegurar_directorio", output)
         self.assertIn("descargar_archivo", output)
         self.assertIn("limpiar_cabeceras_string", output)

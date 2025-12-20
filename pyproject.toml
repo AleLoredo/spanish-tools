@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "spa_text_utils"
+name = "spanish_tools"
 version = "0.1.0"
 description = "A Python library for Spanish data analysis complexities."
 readme = "README.md"
@@ -18,4 +18,4 @@ classifiers = [
 data = ["pandas"]
 
 [project.urls]
-"Homepage" = "https://github.com/yourusername/spa_text_utils"
+"Homepage" = "https://github.com/AleLoredo/spanish-tools"

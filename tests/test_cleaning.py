@@ -1,5 +1,5 @@
 import unittest
-from spa_text_utils.cleaning import limpiar_celda_texto
+from spanish_tools.cleaning import limpiar_celda_texto
 
 class TestCleaning(unittest.TestCase):
 

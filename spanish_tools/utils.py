@@ -75,15 +75,15 @@ def descargar_archivo(url: str, nombre_archivo: str, subcarpeta_destino: str = '
 
 
 
-def ayuda_spa_text_utils():
+def ayuda_spanish_tools():
     """
     Muestra la documentación completa de las funciones disponibles en la librería 
-    spa_text_utils, incluyendo su definición y ejemplos de uso.
+    spanish_tools, incluyendo su definición y ejemplos de uso.
     """
     
     documentacion = """
 ============================================================
-📚 Documentación de spa_text_utils para Análisis en Español
+📚 Documentación de spanish_tools para Análisis en Español
 ============================================================
 
 Esta librería ofrece herramientas esenciales para la preparación de datos 
