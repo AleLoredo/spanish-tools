@@ -1,123 +1,132 @@
-# spanish_tools
+# Spanish Tools
 
-A Python library designed to handle the complexities of working with Spanish text data.
+[![PyPI version](https://img.shields.io/pypi/v/spanish-tools?color=blue)](https://pypi.org/project/spanish-tools/)
+[![Python Version](https://img.shields.io/pypi/pyversions/spanish-tools)](https://pypi.org/project/spanish-tools/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Features
+**Spanish Tools** es una librería de Python diseñada específicamente para facilitar el análisis y procesamiento de datos en español. Resuelve problemas comunes como la codificación, formatos numéricos regionales (coma decimal), fechas y normalización de texto (tildes, eñes) de manera eficiente.
 
-- **Cleaning**: Tools to remove accents, handle special characters, and clean text.
-- **Normalization**: Spanish-specific text normalization.
-- **Analysis**: Tools for analyzing Spanish text.
+## 🚀 Instalación
 
-## Installation
-
+### Instalación estándar (PyPI)
 ```bash
 pip install spanish_tools
 ```
 
-## Instalación en Google Colab
-
-Para instalar la última versión directamente desde GitHub:
-
+### Instalación en Google Colab
+Para instalar la última versión de desarrollo directamente desde GitHub:
 ```python
 !pip install git+https://github.com/AleLoredo/spanish-tools.git
 ```
+> **Nota:** Si vas a utilizar las funciones de carga de CSV (`spanish_tools.io`), asegúrate de tener `pandas` instalado (incluido por defecto en Colab y Anaconda).
 
-Si vas a utilizar las funciones de CSV (que requieren pandas), asegúrate de tener pandas instalado (Colab ya lo incluye por defecto).
+## ⚡ Inicio Rápido
 
-
-## Usage
+Limpia y carga un dataset español desordenado en un solo paso:
 
 ```python
-import spanish_tools
+from spanish_tools.io import procesar_csv_es
 
-# Example usage (coming soon)
+# Carga un CSV con formato español (separador ';', decimal ',')
+# y limpia automáticamente los nombres de las columnas.
+df = procesar_csv_es(
+    ruta_archivo="ventas_2024.csv", 
+    columnas_texto_a_limpiar=["Comentarios", "Ciudad"]
+)
+
+# ¡Listo! Las columnas ahora son 'snake_case' (ej. 'Fecha Venta' -> 'fecha_venta')
+# y el texto en 'comentarios' y 'ciudad' está normalizado.
+print(df.head())
 ```
 
-## Referencia de la API
+## ✨ Características Principales
 
-### Gestión de Archivos y Directorios (`spanish_tools.utils`)
+*   **Carga de Datos Localizada**: Funciones para `pandas` pre-configuradas para formatos regionales de España/Latinoamérica (coma decimal, punto de miles).
+*   **Normalización de Texto**: Herramientas robustas para eliminar acentos, manejar la 'ñ' y estandarizar mayúsculas/minúsculas.
+*   **Limpieza de Cabeceras**: Convierte nombres de columnas "sucios" (con espacios, tildes, símbolos) a `snake_case` limpio y programable.
+*   **Gestión de Archivos**: Utilidades para descargar archivos y asegurar estructuras de directorios.
 
-*   `asegurar_directorio(ruta_destino: str)`
-    *   Crea un directorio y sus padres si no existen.
-    ```python
-    from spanish_tools.utils import asegurar_directorio
-    asegurar_directorio("datos/procesados/2024")
-    ```
+## 📚 Referencia de la API
 
-*   `descargar_archivo(url: str, nombre_archivo: str, subcarpeta_destino: str = 'data') -> str | None`
-    *   Descarga un archivo desde una URL a una carpeta local.
-    ```python
-    from spanish_tools.utils import descargar_archivo
-    ruta = descargar_archivo("https://ejemplo.com/data.csv", "datos.csv")
-    ```
+### 1. Carga y Procesamiento (`spanish_tools.io`)
 
-### Carga y Procesamiento de Datos (`spanish_tools.io`)
+#### `procesar_csv_es`
+Pipeline "todo en uno" para cargar y limpiar datasets.
+```python
+def procesar_csv_es(
+    ruta_archivo: str, 
+    columnas_texto_a_limpiar: List[str] = None, 
+    separador: str = ';', 
+    quitar_acentos: bool = True, 
+    **kwargs
+) -> Optional[pd.DataFrame]
+```
+*   **ruta_archivo**: Ruta al archivo CSV.
+*   **columnas_texto_a_limpiar**: Lista de nombres de columnas (originales) cuyo contenido de texto se debe normalizar.
+*   **separador**: Delimitador del CSV (default: `;`).
+*   **quitar_acentos**: Si es `True`, elimina tildes en el contenido de las columnas especificadas.
 
-*   `cargar_csv_es(ruta_archivo: str, separador: str = ';', **kwargs) -> Optional[pd.DataFrame]`
-    *   Carga un CSV con configuración regional española (decimal=',', miles='.').
-    ```python
-    from spanish_tools.io import cargar_csv_es
-    df = cargar_csv_es("ventas_espana.csv")
-    ```
+#### `cargar_csv_es`
+Carga un CSV con configuración regional española (coma decimal).
+```python
+from spanish_tools.io import cargar_csv_es
+df = cargar_csv_es("datos.csv", separador=";")
+```
 
-*   `procesar_csv_es(ruta_archivo: str, columnas_texto_a_limpiar: List[str] = None, separador: str = ';', quitar_acentos: bool = True, **kwargs) -> Optional[pd.DataFrame]`
-    *   Pipeline completo: carga CSV, limpia cabeceras y normaliza columnas de texto.
-    ```python
-    from spanish_tools.io import procesar_csv_es
-    df = procesar_csv_es("comentarios.csv", columnas_texto_a_limpiar=["Opinion_Cliente"])
-    ```
+### 2. Normalización (`spanish_tools.normalization`)
 
-### Normalización (`spanish_tools.normalization`)
+#### `limpiar_cabeceras_string`
+Convierte texto a formato `snake_case` ideal para nombres de variables o columnas.
+```python
+from spanish_tools.normalization import limpiar_cabeceras_string
 
-*   `limpiar_cabeceras_string(texto: str) -> str`
-    *   Convierte texto a `snake_case` (minúsculas, sin acentos, guiones bajos).
-    ```python
-    from spanish_tools.normalization import limpiar_cabeceras_string
-    print(limpiar_cabeceras_string("Fecha de Creación")) # "fecha_de_creacion"
-    ```
+print(limpiar_cabeceras_string("Año de Creación (2024)"))
+# Salida: "ano_de_creacion_2024"
+```
 
-*   `convertir_a_float_es(valor: str | float | int) -> float | None`
-    *   Convierte strings numéricos españoles ("1.234,56") a float.
-    ```python
-    from spanish_tools.normalization import convertir_a_float_es
-    print(convertir_a_float_es("1.500,50")) # 1500.5
-    ```
+#### `convertir_a_float_es`
+Convierte strings numéricos españoles a `float`.
+```python
+from spanish_tools.normalization import convertir_a_float_es
 
-*   `convertir_a_fecha_es(fecha_str: str, formato: str = '%d/%m/%Y') -> datetime | None`
-    *   Convierte texto a objeto datetime.
-    ```python
-    from spanish_tools.normalization import convertir_a_fecha_es
-    print(convertir_a_fecha_es("31/12/2023")) # datetime(2023, 12, 31, 0, 0)
-    ```
+print(convertir_a_float_es("1.500,50"))
+# Salida: 1500.5
+```
 
-### Limpieza (`spanish_tools.cleaning`)
+#### `convertir_a_fecha_es`
+Parsea fechas en formato español (dd/mm/aaaa).
+```python
+from spanish_tools.normalization import convertir_a_fecha_es
 
-*   `limpiar_celda_texto(texto: str, quitar_acentos: bool = True) -> str`
-    *   Normaliza texto de celdas: minúsculas, espacios, puntuación y acentos (opcional).
-    ```python
-    from spanish_tools.cleaning import limpiar_celda_texto
-    print(limpiar_celda_texto("  HOLA MUNDO!  ")) # "hola mundo"
-    ```
+print(convertir_a_fecha_es("31/12/2023"))
+# Salida: datetime.datetime(2023, 12, 31, 0, 0)
+```
 
-*   `remove_accents(text)`
-    *   Elimina acentos de un texto.
-    ```python
-    from spanish_tools.cleaning import remove_accents
-    print(remove_accents("camión")) # "camion"
-    ```
+### 3. Limpieza de Texto (`spanish_tools.cleaning`)
 
-*   `clean_text(text)`
-    *   Limpieza básica de texto.
-    ```python
-    from spanish_tools.cleaning import clean_text
-    print(clean_text("Texto sucio..."))
-    ```
+#### `limpiar_celda_texto`
+Limpieza atómica para una cadena de texto.
+```python
+from spanish_tools.cleaning import limpiar_celda_texto
 
-### Ayuda
+texto = "  HOLA   MUNDO! "
+print(limpiar_celda_texto(texto))
+# Salida: "hola mundo"
+```
 
-*   `ayuda_spanish_tools()`
-    *   Imprime la documentación completa y ejemplos de uso en la consola.
-    ```python
-    from spanish_tools.utils import ayuda_spanish_tools
-    ayuda_spanish_tools()
-    ```
+### 4. Utilidades (`spanish_tools.utils`)
+
+*   `descargar_archivo(url, nombre_archivo, subcarpeta_destino)`: Descarga archivos web fácilmente.
+*   `asegurar_directorio(ruta)`: Crea directorios si no existen.
+*   `ayuda_spanish_tools()`: Muestra la documentación interactiva en consola.
+
+## 🤝 Contribuir
+¡Las contribuciones son bienvenidas! Si encuentras un bug o tienes una idea para una nueva funcionalidad:
+1.  Haz un Fork del repositorio.
+2.  Crea una rama para tu feature (`git checkout -b feature/nueva-feature`).
+3.  Haz Commit de tus cambios (`git commit -m 'Añadir nueva feature'`).
+4.  Haz Push a la rama (`git push origin feature/nueva-feature`).
+5.  Abre un Pull Request.
+
+## 📄 Licencia
+Este proyecto está bajo la Licencia MIT. Consulta el archivo `LICENSE` para más detalles.
