@@ -8,53 +8,43 @@ if TYPE_CHECKING:
 from .normalization import limpiar_cabeceras_string
 from .cleaning import limpiar_celda_texto
 
-def process(
-    ruta_archivo: str, 
-    columnas_texto_a_limpiar: List[str] = None, 
-    separador: str = ';', 
-    quitar_acentos: bool = True, 
+def read_csv(
+    ruta_archivo: str,
+    separador: str = ';',
     **kwargs
 ) -> Optional[pd.DataFrame]:
     """
-    Función integral que automatiza la carga y limpieza de un dataset CSV 
-    con localización en español.
+    Carga un archivo CSV con configuración regional española y normaliza sus cabeceras.
 
-    Realiza la carga localizada, la limpieza de cabeceras, y la normalización 
-    de texto en las columnas especificadas.
+    Es un wrapper "vitaminado" de pandas.read_csv que:
+    1.  Configura decimales (',') y separadores (';') por defecto para España/Latam.
+    2.  Limpia automáticamente los nombres de las columnas a 'snake_case'.
 
     Args:
-        ruta_archivo (str): La ruta completa del archivo CSV.
-        columnas_texto_a_limpiar (list[str]): Nombres de las columnas de texto 
-                                              a las que se aplicará limpiar_celda_texto. 
-                                              Se usan los nombres originales de las columnas.
-                                              Por defecto es None (no se limpian cuerpos de texto).
-        separador (str): El delimitador de campos (por defecto ';').
-        quitar_acentos (bool): Si es True, elimina tildes/eñes en los cuerpos de texto 
-                               (True por defecto).
-        **kwargs: Argumentos adicionales que se pasan directamente a pd.read_csv.
-    
+        ruta_archivo (str): Ruta al archivo CSV.
+        separador (str): Delimitador (default: ';').
+        **kwargs: Argumentos estándar de pandas.read_csv (encoding, dtype, etc.).
+
     Returns:
-        pd.DataFrame | None: El DataFrame limpio y procesado, o None si hay error.
+        pd.DataFrame | None: DataFrame cargado con cabeceras limpias.
     """
     try:
         import pandas as pd
     except ImportError:
         print("❌ Error: Pandas no está instalado. Esta función requiere pandas.")
         return None
-    
-    # 1. CARGA LOCALIZADA
-    # Configuración por defecto para CSVs españoles
+
+    # 1. Configuración Regional
     localizacion_kwargs = {
         'sep': separador,
         'decimal': ',', 
         'thousands': '.',
         'encoding': 'utf8',
     }
-    # Combinar con kwargs del usuario (usuario manda)
     config_final = {**localizacion_kwargs, **kwargs}
     
     ruta_path = pathlib.Path(ruta_archivo)
-    print(f"1. Iniciando carga localizada de '{ruta_path.name}'...")
+    print(f"1. Cargando '{ruta_path.name}'...")
     
     try:
         df = pd.read_csv(str(ruta_path), **config_final)
@@ -62,35 +52,59 @@ def process(
         print(f"❌ Error: Archivo no encontrado: {ruta_archivo}")
         return None
     except Exception as e:
-        print(f"❌ Error al cargar el archivo: {e}")
+        print(f"❌ Error al cargar: {e}")
         return None
 
-    # 2. LIMPIEZA DE CABECERAS
-    # Crear el mapeo de nombres (Original -> Limpio)
+    # 2. Limpieza de Cabeceras
     nombre_columnas_map = {col: limpiar_cabeceras_string(col) for col in df.columns}
     df.rename(columns=nombre_columnas_map, inplace=True)
-    print("2. Cabeceras limpiadas y convertidas a snake_case.")
+    print("✅ Carga completa. Cabeceras normalizadas.")
+    return df
+
+def clean_text(
+    df: pd.DataFrame, 
+    fields: List[str] | str,
+    quitar_acentos: bool = True
+) -> pd.DataFrame:
+    """
+    Limpia y normaliza columnas de texto en un DataFrame existente.
+
+    Args:
+        df (pd.DataFrame): DataFrame a limpiar.
+        fields (List[str] | str): Columnas a limpiar. 
+                                  - Lista de nombres de columnas (ya normalizadas).
+                                  - "all" para limpiar todas las columnas.
+        quitar_acentos (bool): Elimina tildes si es True.
+
+    Returns:
+        pd.DataFrame: El mismo DataFrame con los textos limpios.
+    """
+    # Copia ligera para no mutar el original inesperadamente si el usuario no quiere
+    # Aunque en pandas es común mutar, es más seguro retornar una referencia o copia.
+    # Por eficiencia en dataframes grandes, operaremos in-place pero retornamos 'df' para chaining.
+    # Decisión: Operar sobre el objeto pasado para eficiencia, data science style.
     
-    # 3. LIMPIEZA DE CUERPOS DE TEXTO
-    if columnas_texto_a_limpiar:
-        # Obtener los nombres limpios que coinciden con las columnas a limpiar
-        nombres_limpios_a_limpiar = [
-            nombre_columnas_map.get(col_original) 
-            for col_original in columnas_texto_a_limpiar 
-            if col_original in nombre_columnas_map # Asegura que la columna original exista
-        ]
-        
-        if not nombres_limpios_a_limpiar:
-             print("⚠️ Advertencia: Ninguna de las columnas especificadas para limpieza de texto fue encontrada.")
-        
-        for col_limpia in nombres_limpios_a_limpiar:
-            # Aplicamos la función atómica de limpieza de texto
-            # Usar .astype(str) asegura que manejamos NaNs como 'nan' o fallos silent
-            df[col_limpia] = df[col_limpia].astype(str).apply(
-                lambda x: limpiar_celda_texto(x, quitar_acentos=quitar_acentos)
-            )
-        print(f"3. Limpieza de texto aplicada a {len(nombres_limpios_a_limpiar)} columna(s).")
+    if fields == "all":
+        cols_to_clean = df.columns.tolist()
+    elif isinstance(fields, list):
+        # Validar que existan
+        cols_to_clean = [c for c in fields if c in df.columns]
+        missing = set(fields) - set(df.columns)
+        if missing:
+            print(f"⚠️ Columnas no encontradas: {missing}")
+    else:
+        print("❌ Error: 'fields' debe ser una lista o 'all'.")
+        return df
+
+    count = 0
+    for col in cols_to_clean:
+        # Check simple de tipo
+        # Aplicamos astype(str) para robustez
+        df[col] = df[col].astype(str).apply(
+            lambda x: limpiar_celda_texto(x, quitar_acentos=quitar_acentos)
+        )
+        count += 1
     
-    print("✅ Proceso integral completado.")
+    print(f"✨ Texto limpio en {count} columnas.")
     return df
 

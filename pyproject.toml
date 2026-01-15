@@ -5,17 +5,20 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "spanish_tools"
 version = "0.1.0"
-description = "A Python library for Spanish data analysis complexities."
+description = "Intelligent data processing tools for Spanish datasets (encoding, dates, numbers)."
 readme = "README.md"
 requires-python = ">=3.7"
+keywords = ["pandas", "spanish", "data-cleaning", "csv", "normalization"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Natural Language :: Spanish",
 ]
-
-[project.optional-dependencies]
-data = ["pandas"]
+dependencies = [
+    "pandas>=1.0.0"
+]
 
 [project.urls]
 "Homepage" = "https://github.com/AleLoredo/spanish-tools"

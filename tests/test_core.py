@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 import sys
 import os
-from spanish_tools.core import process
+from spanish_tools.core import read_csv, clean_text
 
 try:
     import pandas as pd
@@ -12,42 +12,72 @@ except ImportError:
 
 class TestCore(unittest.TestCase):
 
-    def test_process_success(self):
+    def test_read_csv_success(self):
+        """Test simple load and header cleaning"""
         mock_pd = MagicMock()
         mock_df = MagicMock()
         mock_df.columns = ['Columna 1', 'Columna 2']
         mock_pd.read_csv.return_value = mock_df
         
-        # Mock apply for text cleaning
-        # The code does: df[col] = df[col].astype(str).apply(...)
-        mock_series = MagicMock()
-        mock_df.__getitem__.return_value = mock_series
-        
-        # Mock .astype(str) to return the same series (or a mock that has .apply)
-        mock_series.astype.return_value = mock_series
-        mock_series.apply.return_value = mock_series
-
         with patch.dict('sys.modules', {'pandas': mock_pd}):
-            df = process('datos.csv', columnas_texto_a_limpiar=['Columna 1'])
+            df = read_csv('datos.csv')
             
             self.assertEqual(df, mock_df)
             
-            # Verify rename was called (header cleaning)
+            # Verify rename was called (proper snake_case conversion)
             mock_df.rename.assert_called_once()
             args, kwargs = mock_df.rename.call_args
             self.assertIn('columns', kwargs)
             
-            # Verify text cleaning was applied
-            mock_df.__getitem__.assert_called()
-            mock_series.astype.assert_called_with(str)
-            mock_series.apply.assert_called()
+            # Ensure proper pd.read_csv call (localized)
+            mock_pd.read_csv.assert_called()
+            call_kwargs = mock_pd.read_csv.call_args[1]
+            self.assertEqual(call_kwargs['decimal'], ',')
+            self.assertEqual(call_kwargs['sep'], ';')
 
-    def test_process_load_error(self):
+    def test_clean_text_basic(self):
+        """Test text cleaning on specific columns of an existing DF"""
+        # Setup a mock DF that allows iteration
+        mock_df = MagicMock()
+        mock_df.columns = ['col1']
+        
+        mock_series = MagicMock()
+        # Mocking __getitem__ (df['col1'])
+        mock_df.__getitem__.return_value = mock_series
+        mock_series.astype.return_value = mock_series
+        mock_series.apply.return_value = mock_series
+
+        df = clean_text(mock_df, fields=['col1'])
+        
+        # Verify cleaning
+        mock_series.apply.assert_called()
+
+    def test_clean_text_all(self):
+        """Test clean_text works with 'all' keyword"""
+        mock_df = MagicMock()
+        
+        # Mock columns to support iteration and tolist
+        mock_columns = MagicMock()
+        mock_columns.tolist.return_value = ['col1', 'col2']
+        mock_columns.__iter__.return_value = iter(['col1', 'col2'])
+        mock_df.columns = mock_columns
+        
+        mock_series = MagicMock()
+        mock_df.__getitem__.return_value = mock_series
+        mock_series.astype.return_value = mock_series
+        mock_series.apply.return_value = mock_series
+
+        clean_text(mock_df, fields='all')
+        
+        # Should clean 2 columns
+        self.assertEqual(mock_series.apply.call_count, 2)
+
+    def test_read_csv_load_error(self):
         mock_pd = MagicMock()
         mock_pd.read_csv.side_effect = FileNotFoundError()
         
         with patch.dict('sys.modules', {'pandas': mock_pd}):
-            result = process('no_existe.csv')
+            result = read_csv('no_existe.csv')
             self.assertIsNone(result)
 
     @unittest.skipUnless(PANDAS_INSTALLED, "Pandas not installed")
@@ -65,11 +95,17 @@ class TestCore(unittest.TestCase):
 
         # Process the CSV
         # The file uses comma separator based on inspection
-        df = process(
+        # 1. READ (Safe)
+        df = read_csv(
             csv_path, 
-            columnas_texto_a_limpiar=['Nombre'], 
             separador=','
         )
+        
+        self.assertIsNotNone(df)
+        self.assertIn('nombre', df.columns) # Cleaned header
+        
+        # 2. CLEAN TEXT (Explicit)
+        df = clean_text(df, fields=['nombre'])
         
         self.assertIsNotNone(df)
         
