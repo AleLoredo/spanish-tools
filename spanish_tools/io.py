@@ -8,51 +8,6 @@ if TYPE_CHECKING:
 from .normalization import limpiar_cabeceras_string
 from .cleaning import limpiar_celda_texto
 
-def cargar_csv_es(ruta_archivo: str, separador: str = ';', **kwargs) -> Optional[pd.DataFrame]:
-    """
-    Carga un archivo CSV asumiendo la configuración regional española/latinoamericana:
-    - Decimal: Coma (',')
-    - Separador de campo: Punto y coma (';') por defecto, pero configurable.
-
-    Args:
-        ruta_archivo (str): La ruta completa del archivo CSV.
-        separador (str): El delimitador de campos (por defecto ';').
-        **kwargs: Argumentos adicionales que se pasan directamente a pd.read_csv.
-    
-    Returns:
-        pd.DataFrame | None: El DataFrame cargado o None si hay error.
-    """
-    try:
-        import pandas as pd
-    except ImportError:
-        print("❌ Error: Pandas no está instalado. Esta función requiere pandas.")
-        return None
-
-    # 1. Asegurar que la ruta sea un string válido
-    ruta = str(pathlib.Path(ruta_archivo))
-    
-    # 2. Configuración de localización
-    localizacion_kwargs = {
-        'sep': separador,
-        'decimal': ',', # Coma como separador decimal
-        'thousands': '.', # Punto como separador de miles
-        'encoding': 'utf8', # Usar UTF-8 por defecto, pero puede ser sobreescrito
-    }
-    
-    # 3. Combinar argumentos del usuario con la localización por defecto
-    config_final = {**localizacion_kwargs, **kwargs}
-    
-    try:
-        df = pd.read_csv(ruta, **config_final)
-        print(f"✅ Archivo '{ruta_archivo}' cargado con éxito. Filas: {len(df)}")
-        return df
-    except FileNotFoundError:
-        print(f"❌ Error: Archivo no encontrado en la ruta: {ruta_archivo}")
-        return None
-    except Exception as e:
-        print(f"❌ Error al cargar el archivo: {e}")
-        return None
-
 def procesar_csv_es(
     ruta_archivo: str, 
     columnas_texto_a_limpiar: List[str] = None, 
@@ -76,7 +31,7 @@ def procesar_csv_es(
         separador (str): El delimitador de campos (por defecto ';').
         quitar_acentos (bool): Si es True, elimina tildes/eñes en los cuerpos de texto 
                                (True por defecto).
-        **kwargs: Argumentos adicionales que se pasan a cargar_csv_es (y a pd.read_csv).
+        **kwargs: Argumentos adicionales que se pasan directamente a pd.read_csv.
     
     Returns:
         pd.DataFrame | None: El DataFrame limpio y procesado, o None si hay error.
@@ -87,12 +42,27 @@ def procesar_csv_es(
         print("❌ Error: Pandas no está instalado. Esta función requiere pandas.")
         return None
     
-    # 1. CARGA LOCALIZADA (Manejo de decimales, separador y codificación)
-    print(f"1. Iniciando carga localizada de '{ruta_archivo}'...")
-    df = cargar_csv_es(ruta_archivo, separador=separador, **kwargs)
+    # 1. CARGA LOCALIZADA
+    # Configuración por defecto para CSVs españoles
+    localizacion_kwargs = {
+        'sep': separador,
+        'decimal': ',', 
+        'thousands': '.',
+        'encoding': 'utf8',
+    }
+    # Combinar con kwargs del usuario (usuario manda)
+    config_final = {**localizacion_kwargs, **kwargs}
     
-    if df is None:
-        print("❌ Proceso detenido: Error en la carga del archivo.")
+    ruta_path = pathlib.Path(ruta_archivo)
+    print(f"1. Iniciando carga localizada de '{ruta_path.name}'...")
+    
+    try:
+        df = pd.read_csv(str(ruta_path), **config_final)
+    except FileNotFoundError:
+        print(f"❌ Error: Archivo no encontrado: {ruta_archivo}")
+        return None
+    except Exception as e:
+        print(f"❌ Error al cargar el archivo: {e}")
         return None
 
     # 2. LIMPIEZA DE CABECERAS
@@ -115,10 +85,12 @@ def procesar_csv_es(
         
         for col_limpia in nombres_limpios_a_limpiar:
             # Aplicamos la función atómica de limpieza de texto
-            df[col_limpia] = df[col_limpia].apply(
+            # Usar .astype(str) asegura que manejamos NaNs como 'nan' o fallos silent
+            df[col_limpia] = df[col_limpia].astype(str).apply(
                 lambda x: limpiar_celda_texto(x, quitar_acentos=quitar_acentos)
             )
         print(f"3. Limpieza de texto aplicada a {len(nombres_limpios_a_limpiar)} columna(s).")
     
     print("✅ Proceso integral completado.")
     return df
+

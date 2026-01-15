@@ -41,17 +41,17 @@ print(df.head())
 
 ## ✨ Características Principales
 
-*   **Carga de Datos Localizada**: Funciones para `pandas` pre-configuradas para formatos regionales de España/Latinoamérica (coma decimal, punto de miles).
 *   **Normalización de Texto**: Herramientas robustas para eliminar acentos, manejar la 'ñ' y estandarizar mayúsculas/minúsculas.
 *   **Limpieza de Cabeceras**: Convierte nombres de columnas "sucios" (con espacios, tildes, símbolos) a `snake_case` limpio y programable.
-*   **Gestión de Archivos**: Utilidades para descargar archivos y asegurar estructuras de directorios.
+*   **Pipeline de Carga Inteligente**: Función unificada que carga CSVs españoles y aplica limpieza en un solo paso.
 
 ## 📚 Referencia de la API
 
 ### 1. Carga y Procesamiento (`spanish_tools.io`)
 
 #### `procesar_csv_es`
-Pipeline "todo en uno" para cargar y limpiar datasets.
+Pipeline "todo en uno" para cargar y limpiar datasets. Maneja automáticamente la configuración regional española para `pandas` (separador `;`, decimal `,`).
+
 ```python
 def procesar_csv_es(
     ruta_archivo: str, 
@@ -65,18 +65,13 @@ def procesar_csv_es(
 *   **columnas_texto_a_limpiar**: Lista de nombres de columnas (originales) cuyo contenido de texto se debe normalizar.
 *   **separador**: Delimitador del CSV (default: `;`).
 *   **quitar_acentos**: Si es `True`, elimina tildes en el contenido de las columnas especificadas.
-
-#### `cargar_csv_es`
-Carga un CSV con configuración regional española (coma decimal).
-```python
-from spanish_tools.io import cargar_csv_es
-df = cargar_csv_es("datos.csv", separador=";")
-```
+*   **kwargs**: Argumentos adicionales pasados a `pandas.read_csv`.
 
 ### 2. Normalización (`spanish_tools.normalization`)
 
 #### `limpiar_cabeceras_string`
 Convierte texto a formato `snake_case` ideal para nombres de variables o columnas.
+
 ```python
 from spanish_tools.normalization import limpiar_cabeceras_string
 
@@ -84,28 +79,11 @@ print(limpiar_cabeceras_string("Año de Creación (2024)"))
 # Salida: "ano_de_creacion_2024"
 ```
 
-#### `convertir_a_float_es`
-Convierte strings numéricos españoles a `float`.
-```python
-from spanish_tools.normalization import convertir_a_float_es
-
-print(convertir_a_float_es("1.500,50"))
-# Salida: 1500.5
-```
-
-#### `convertir_a_fecha_es`
-Parsea fechas en formato español (dd/mm/aaaa).
-```python
-from spanish_tools.normalization import convertir_a_fecha_es
-
-print(convertir_a_fecha_es("31/12/2023"))
-# Salida: datetime.datetime(2023, 12, 31, 0, 0)
-```
-
 ### 3. Limpieza de Texto (`spanish_tools.cleaning`)
 
 #### `limpiar_celda_texto`
-Limpieza atómica para una cadena de texto.
+Limpieza atómica para una cadena de texto. Elimina puntuación innecesaria, espacios extra, y opcionalmente acentos.
+
 ```python
 from spanish_tools.cleaning import limpiar_celda_texto
 
@@ -113,12 +91,6 @@ texto = "  HOLA   MUNDO! "
 print(limpiar_celda_texto(texto))
 # Salida: "hola mundo"
 ```
-
-### 4. Utilidades (`spanish_tools.utils`)
-
-*   `descargar_archivo(url, nombre_archivo, subcarpeta_destino)`: Descarga archivos web fácilmente.
-*   `asegurar_directorio(ruta)`: Crea directorios si no existen.
-*   `ayuda_spanish_tools()`: Muestra la documentación interactiva en consola.
 
 ## 🤝 Contribuir
 ¡Las contribuciones son bienvenidas! Si encuentras un bug o tienes una idea para una nueva funcionalidad:
