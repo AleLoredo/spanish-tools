@@ -27,36 +27,27 @@ To install the latest development version directly from GitHub:
 ```python
 import spanish_tools as spa
 
-# 1. Load Data (Safe)
+# 1. Load Data (Safe & Configurable)
 # This will load a Spanish CSV (separator ';') and clean all column names.
-df = spa.read_csv("sales_2024.csv")
+# You can pass ANY pandas argument here (dtype, parse_dates, etc.)
+df = spa.read_csv(
+    "sales_2024.csv",
+    parse_dates=["sale_date"],  # Convert to datetime
+    dtype={"dni": str},         # Force text type
+    dayfirst=True,              # Spanish date format (DD/MM/YYYY)
+    na_values=['-', 'N/A']      # Custom null values
+)
 
 # 2. Clean Text (Explicit)
-# This will clean the content of specific columns 
-df = spa.clean_text(df, fields=["Comments", "City"])
+# This will clean the content of specific columns (removes accents, standardizes spaces, lowercases)
+df = spa.clean_text(df, fields=["comments", "city"])
 
 # 3. Clean Text (All)
-# This will clean the content of all columns
-# You may use pandas arguments in order to obtain the desired result.
-# Some examples for common use cases are:
-# - quitar_acentos: bool = True (to remove accents)
-# - parse_dates: List[str] = [] (to convert columns to datetime)
-# - dtype: Dict[str, str] = {} (to force data type)
-# - skiprows: int = 0 (to skip initial lines)
-# - na_values: List[str] = [] (to define what text counts as "null data")
-# - date_parser: Callable[[str], datetime] = None (to define a custom date parser)
-# - For datetime, you can use the following arguments:
-#  - dayfirst: bool = False (to interpret dates in the format dd/mm/yyyy)
-#    yearfirst: bool = False (to interpret dates in the format yyyy/mm/dd)
-
-df = spa.clean_text(df, fields="all", quitar_acentos=True, 
-parse_dates=["sale_date"], 
-dtype={"dni": str},
-dayfirst=True,
-yearfirst=False)
+# Or clean the entire DataFrame
+df = spa.clean_text(df, fields="all", remove_accents=True)
 
 print(df.head())
-# Columns: 'sale_date', 'city'
+# Columns: 'sale_date', 'city' (snake_case headers)
 # Content: 'madrid' (clean text)
 ```
 
@@ -82,7 +73,7 @@ def read_csv(
 ```
 
 #### Useful Pandas Arguments (`**kwargs`)
-You can customize the loading by passing any of these common arguments:
+You can customize the loading by passing any of these common arguments directly to `read_csv`:
 
 | Argument | Description | Example |
 | :--- | :--- | :--- |
@@ -108,6 +99,7 @@ def clean_text(
 ```
 *   **fields**: Columns to clean. Can be a list of names `['col_a']` or `"all"` for the entire DataFrame.
 *   **remove_accents**: If `True` (default), removes accents ('á' -> 'a') and normalizes 'ñ'.
+*   **kwargs**: Included for potential future extensions, currently ignored.
 
 ### 2. Normalization
 
