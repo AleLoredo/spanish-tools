@@ -25,11 +25,11 @@ Para instalar la última versión de desarrollo directamente desde GitHub:
 Limpia y carga un dataset español desordenado en un solo paso:
 
 ```python
-from spanish_tools.io import procesar_csv_es
+import spanish_tools as spa
 
 # Carga un CSV con formato español (separador ';', decimal ',')
 # y limpia automáticamente los nombres de las columnas.
-df = procesar_csv_es(
+df = spa.process(
     ruta_archivo="ventas_2024.csv", 
     columnas_texto_a_limpiar=["Comentarios", "Ciudad"]
 )
@@ -47,13 +47,13 @@ print(df.head())
 
 ## 📚 Referencia de la API
 
-### 1. Carga y Procesamiento (`spanish_tools.io`)
+### 1. Carga y Procesamiento (`spanish_tools.core`)
 
-#### `procesar_csv_es`
+#### `spa.process`
 Pipeline "todo en uno" para cargar y limpiar datasets. Maneja automáticamente la configuración regional española para `pandas` (separador `;`, decimal `,`).
 
 ```python
-def procesar_csv_es(
+def process(
     ruta_archivo: str, 
     columnas_texto_a_limpiar: List[str] = None, 
     separador: str = ';', 
@@ -67,28 +67,28 @@ def procesar_csv_es(
 *   **quitar_acentos**: Si es `True`, elimina tildes en el contenido de las columnas especificadas.
 *   **kwargs**: Argumentos adicionales pasados a `pandas.read_csv`.
 
-### 2. Normalización (`spanish_tools.normalization`)
+### 2. Normalización
 
 #### `limpiar_cabeceras_string`
 Convierte texto a formato `snake_case` ideal para nombres de variables o columnas.
 
 ```python
-from spanish_tools.normalization import limpiar_cabeceras_string
+import spanish_tools as spa
 
-print(limpiar_cabeceras_string("Año de Creación (2024)"))
+print(spa.limpiar_cabeceras_string("Año de Creación (2024)"))
 # Salida: "ano_de_creacion_2024"
 ```
 
-### 3. Limpieza de Texto (`spanish_tools.cleaning`)
+### 3. Limpieza de Texto
 
 #### `limpiar_celda_texto`
 Limpieza atómica para una cadena de texto. Elimina puntuación innecesaria, espacios extra, y opcionalmente acentos.
 
 ```python
-from spanish_tools.cleaning import limpiar_celda_texto
+import spanish_tools as spa
 
 texto = "  HOLA   MUNDO! "
-print(limpiar_celda_texto(texto))
+print(spa.limpiar_celda_texto(texto))
 # Salida: "hola mundo"
 ```
 

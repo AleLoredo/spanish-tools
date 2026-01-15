@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 import sys
 import os
-from spanish_tools.io import procesar_csv_es
+from spanish_tools.core import process
 
 try:
     import pandas as pd
@@ -10,9 +10,9 @@ try:
 except ImportError:
     PANDAS_INSTALLED = False
 
-class TestIO(unittest.TestCase):
+class TestCore(unittest.TestCase):
 
-    def test_procesar_csv_es_success(self):
+    def test_process_success(self):
         mock_pd = MagicMock()
         mock_df = MagicMock()
         mock_df.columns = ['Columna 1', 'Columna 2']
@@ -28,7 +28,7 @@ class TestIO(unittest.TestCase):
         mock_series.apply.return_value = mock_series
 
         with patch.dict('sys.modules', {'pandas': mock_pd}):
-            df = procesar_csv_es('datos.csv', columnas_texto_a_limpiar=['Columna 1'])
+            df = process('datos.csv', columnas_texto_a_limpiar=['Columna 1'])
             
             self.assertEqual(df, mock_df)
             
@@ -42,12 +42,12 @@ class TestIO(unittest.TestCase):
             mock_series.astype.assert_called_with(str)
             mock_series.apply.assert_called()
 
-    def test_procesar_csv_es_load_error(self):
+    def test_process_load_error(self):
         mock_pd = MagicMock()
         mock_pd.read_csv.side_effect = FileNotFoundError()
         
         with patch.dict('sys.modules', {'pandas': mock_pd}):
-            result = procesar_csv_es('no_existe.csv')
+            result = process('no_existe.csv')
             self.assertIsNone(result)
 
     @unittest.skipUnless(PANDAS_INSTALLED, "Pandas not installed")
@@ -65,7 +65,7 @@ class TestIO(unittest.TestCase):
 
         # Process the CSV
         # The file uses comma separator based on inspection
-        df = procesar_csv_es(
+        df = process(
             csv_path, 
             columnas_texto_a_limpiar=['Nombre'], 
             separador=','

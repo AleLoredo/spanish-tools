@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 from .normalization import limpiar_cabeceras_string
 from .cleaning import limpiar_celda_texto
 
-def procesar_csv_es(
+def process(
     ruta_archivo: str, 
     columnas_texto_a_limpiar: List[str] = None, 
     separador: str = ';', 
