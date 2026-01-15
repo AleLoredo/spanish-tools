@@ -2,15 +2,13 @@
 spanish_tools package.
 """
 
-from .cleaning import clean_text, remove_accents, limpiar_celda_texto
-from .normalization import limpiar_cabeceras_string
+from .cleaning import clean_string
+from .normalization import clean_header
 from .core import read_csv, clean_text
 
 __all__ = [
-    "clean_text",
-    "remove_accents",
-    "limpiar_celda_texto",
-    "limpiar_cabeceras_string",
+    "clean_string",
+    "clean_header",
     "read_csv",
     "clean_text",
 ]

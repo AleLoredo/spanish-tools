@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING, List, Optional
 if TYPE_CHECKING:
     import pandas as pd
 
-from .normalization import limpiar_cabeceras_string
-from .cleaning import limpiar_celda_texto
+from .normalization import clean_header
+from .cleaning import clean_string
 
 def read_csv(
     ruta_archivo: str,
@@ -14,27 +14,27 @@ def read_csv(
     **kwargs
 ) -> Optional[pd.DataFrame]:
     """
-    Carga un archivo CSV con configuración regional española y normaliza sus cabeceras.
+    Loads a CSV file with Spanish regional configuration and normalizes its headers.
 
-    Es un wrapper "vitaminado" de pandas.read_csv que:
-    1.  Configura decimales (',') y separadores (';') por defecto para España/Latam.
-    2.  Limpia automáticamente los nombres de las columnas a 'snake_case'.
+    It's a "supercharged" wrapper for pandas.read_csv that:
+    1.  Sets defaults for decimal (',') and separators (';') for Spain/Latam.
+    2.  Automatically cleans column names to 'snake_case'.
 
     Args:
-        ruta_archivo (str): Ruta al archivo CSV.
-        separador (str): Delimitador (default: ';').
-        **kwargs: Argumentos estándar de pandas.read_csv (encoding, dtype, etc.).
+        ruta_archivo (str): Path to the CSV file.
+        separador (str): Delimiter (default: ';').
+        **kwargs: Standard pandas.read_csv arguments (encoding, dtype, etc.).
 
     Returns:
-        pd.DataFrame | None: DataFrame cargado con cabeceras limpias.
+        pd.DataFrame | None: Loaded DataFrame with clean headers.
     """
     try:
         import pandas as pd
     except ImportError:
-        print("❌ Error: Pandas no está instalado. Esta función requiere pandas.")
+        print("❌ Error: Pandas not installed. This function requires pandas.")
         return None
 
-    # 1. Configuración Regional
+    # 1. Regional Configuration
     localizacion_kwargs = {
         'sep': separador,
         'decimal': ',', 
@@ -44,67 +44,66 @@ def read_csv(
     config_final = {**localizacion_kwargs, **kwargs}
     
     ruta_path = pathlib.Path(ruta_archivo)
-    print(f"1. Cargando '{ruta_path.name}'...")
+    print(f"1. Loading '{ruta_path.name}'...")
     
     try:
         df = pd.read_csv(str(ruta_path), **config_final)
     except FileNotFoundError:
-        print(f"❌ Error: Archivo no encontrado: {ruta_archivo}")
+        print(f"❌ Error: File not found: {ruta_archivo}")
         return None
     except Exception as e:
-        print(f"❌ Error al cargar: {e}")
+        print(f"❌ Error loading file: {e}")
         return None
 
-    # 2. Limpieza de Cabeceras
-    nombre_columnas_map = {col: limpiar_cabeceras_string(col) for col in df.columns}
+    # 2. Header Cleaning
+    nombre_columnas_map = {col: clean_header(col) for col in df.columns}
     df.rename(columns=nombre_columnas_map, inplace=True)
-    print("✅ Carga completa. Cabeceras normalizadas.")
+    print("✅ Load complete. Headers normalized.")
     return df
 
 def clean_text(
     df: pd.DataFrame, 
     fields: List[str] | str,
-    quitar_acentos: bool = True
+    remove_accents: bool = True,
+    **kwargs
 ) -> pd.DataFrame:
     """
-    Limpia y normaliza columnas de texto en un DataFrame existente.
+    Cleans and normalizes text columns in an existing DataFrame.
 
     Args:
-        df (pd.DataFrame): DataFrame a limpiar.
-        fields (List[str] | str): Columnas a limpiar. 
-                                  - Lista de nombres de columnas (ya normalizadas).
-                                  - "all" para limpiar todas las columnas.
-        quitar_acentos (bool): Elimina tildes si es True.
+        df (pd.DataFrame): DataFrame to clean.
+        fields (List[str] | str): Columns to clean. 
+                                  - List of column names (already normalized).
+                                  - "all" to clean all columns.
+        remove_accents (bool): Removes accents if True.
+        **kwargs: Ignored arguments (kept for compatibility/flexibility).
 
     Returns:
-        pd.DataFrame: El mismo DataFrame con los textos limpios.
+        pd.DataFrame: The same DataFrame with clean text.
     """
-    # Copia ligera para no mutar el original inesperadamente si el usuario no quiere
-    # Aunque en pandas es común mutar, es más seguro retornar una referencia o copia.
-    # Por eficiencia en dataframes grandes, operaremos in-place pero retornamos 'df' para chaining.
-    # Decisión: Operar sobre el objeto pasado para eficiencia, data science style.
+    # Lightweight copy to avoid unexpected mutation if user doesn't want it (though we operate in-place mostly)
     
     if fields == "all":
         cols_to_clean = df.columns.tolist()
     elif isinstance(fields, list):
-        # Validar que existan
+        # Validate existence
         cols_to_clean = [c for c in fields if c in df.columns]
         missing = set(fields) - set(df.columns)
         if missing:
-            print(f"⚠️ Columnas no encontradas: {missing}")
+            print(f"⚠️ Columns not found: {missing}")
     else:
-        print("❌ Error: 'fields' debe ser una lista o 'all'.")
+        print("❌ Error: 'fields' must be a list or 'all'.")
         return df
 
     count = 0
     for col in cols_to_clean:
-        # Check simple de tipo
-        # Aplicamos astype(str) para robustez
+        # Simple type check
+        # Apply astype(str) for robustness
         df[col] = df[col].astype(str).apply(
-            lambda x: limpiar_celda_texto(x, quitar_acentos=quitar_acentos)
+            lambda x: clean_string(x, remove_accents=remove_accents)
         )
         count += 1
     
-    print(f"✨ Texto limpio en {count} columnas.")
+    print(f"✨ Clean text in {count} columns.")
     return df
 

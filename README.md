@@ -16,7 +16,7 @@ pip install spanish_tools
 ### Installation in Google Colab
 To install the latest development version directly from GitHub:
 ```python
-!pip install git+https://github.com/AleLoredo/spanish-tools.git
+!pip install spanish_tools
 ```
 > **Note:** If you are using the CSV loading functions (`spanish_tools.core`), ensure `pandas` is installed (included by default in Colab and Anaconda).
 
@@ -28,12 +28,32 @@ To install the latest development version directly from GitHub:
 import spanish_tools as spa
 
 # 1. Load Data (Safe)
-# Loads Spanish CSV (separador ';') and cleans column names.
+# This will load a Spanish CSV (separator ';') and clean all column names.
 df = spa.read_csv("sales_2024.csv")
 
 # 2. Clean Text (Explicit)
-# Cleans the content of specific columns (or use fields="all")
+# This will clean the content of specific columns 
 df = spa.clean_text(df, fields=["Comments", "City"])
+
+# 3. Clean Text (All)
+# This will clean the content of all columns
+# You may use pandas arguments in order to obtain the desired result.
+# Some examples for common use cases are:
+# - quitar_acentos: bool = True (to remove accents)
+# - parse_dates: List[str] = [] (to convert columns to datetime)
+# - dtype: Dict[str, str] = {} (to force data type)
+# - skiprows: int = 0 (to skip initial lines)
+# - na_values: List[str] = [] (to define what text counts as "null data")
+# - date_parser: Callable[[str], datetime] = None (to define a custom date parser)
+# - For datetime, you can use the following arguments:
+#  - dayfirst: bool = False (to interpret dates in the format dd/mm/yyyy)
+#    yearfirst: bool = False (to interpret dates in the format yyyy/mm/dd)
+
+df = spa.clean_text(df, fields="all", quitar_acentos=True, 
+parse_dates=["sale_date"], 
+dtype={"dni": str},
+dayfirst=True,
+yearfirst=False)
 
 print(df.head())
 # Columns: 'sale_date', 'city'
@@ -82,33 +102,35 @@ Cleans the text content of a loaded DataFrame.
 def clean_text(
     df: pd.DataFrame, 
     fields: List[str] | str,
-    quitar_acentos: bool = True
+    remove_accents: bool = True,
+    **kwargs
 ) -> pd.DataFrame
 ```
 *   **fields**: Columns to clean. Can be a list of names `['col_a']` or `"all"` for the entire DataFrame.
+*   **remove_accents**: If `True` (default), removes accents ('á' -> 'a') and normalizes 'ñ'.
 
 ### 2. Normalization
 
-#### `limpiar_cabeceras_string`
+#### `clean_header`
 Converts text to `snake_case` format, ideal for variable or column names.
 
 ```python
 import spanish_tools as spa
 
-print(spa.limpiar_cabeceras_string("Creation Year (2024)"))
+print(spa.clean_header("Creation Year (2024)"))
 # Output: "creation_year_2024"
 ```
 
 ### 3. Text Cleaning
 
-#### `limpiar_celda_texto`
+#### `clean_string`
 Atomic cleaning for a text string. Removes unnecessary punctuation, extra spaces, and optionally accents.
 
 ```python
 import spanish_tools as spa
 
 text = "  HELLO   WORLD! "
-print(spa.limpiar_celda_texto(text))
+print(spa.clean_string(text))
 # Output: "hello world"
 ```
 

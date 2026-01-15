@@ -4,63 +4,50 @@ Module for cleaning Spanish text.
 import unicodedata
 import string
 
-def remove_accents(text):
+def clean_string(texto: str, remove_accents: bool = True) -> str:
     """
-    Placeholder for removing accents from text.
-    """
-    pass
-
-def clean_text(text):
-    """
-    Placeholder for general text cleaning.
-    """
-    pass
-
-def limpiar_celda_texto(texto: str, quitar_acentos: bool = True) -> str:
-    """
-    Limpia y normaliza una cadena de texto dentro de una celda de datos.
+    Cleans and normalizes a text string within a data cell.
 
     Args:
-        texto (str): El valor de texto de la celda a limpiar.
-        quitar_acentos (bool): Si es True (por defecto), elimina tildes, 
-                               diéresis y transforma la ñ. Si es False, 
-                               solo normaliza el texto (útil para mantener 
-                               la ortografía correcta).
+        texto (str): The text value of the cell to clean.
+        remove_accents (bool): If True (default), removes accents, 
+                               diereses, and transforms 'ñ'. If False, 
+                               only normalizes the text (useful for maintaining 
+                               correct spelling).
     
     Returns:
-        str: La cadena de texto limpia, sin espacios extra y en minúsculas.
+        str: The clean text string, without extra spaces and in lowercase.
     """
     if not isinstance(texto, str):
-        # Manejo de valores no string (ej. NaN, números que se tratan como texto)
+        # Handling non-string values (e.g., NaN, numbers treated as text)
         return texto 
 
-    # 1. Normalización Unicode: Asegura que los caracteres acentuados 
-    #    tengan una representación consistente. (NFC es la forma más común)
+    # 1. Unicode Normalization: Ensures accented characters have a consistent representation. (NFC is most common)
     texto_limpio = unicodedata.normalize('NFC', texto)
     
-    # 2. Quitar acentos si se requiere
-    if quitar_acentos:
-        # Normalización NFD: Descompone (ej. 'á' -> 'a' + acento)
+    # 2. Remove accents if required
+    if remove_accents:
+        # NFD Normalization: Decomposes (e.g., 'á' -> 'a' + accent)
         texto_nfd = unicodedata.normalize('NFD', texto_limpio)
         
-        # Filtrar caracteres: Ignora las marcas diacríticas ('Mn')
+        # Filter characters: Ignore non-spacing marks ('Mn')
         texto_sin_acentos = ''.join(
             c for c in texto_nfd if unicodedata.category(c) != 'Mn'
         )
         texto_limpio = texto_sin_acentos
 
-    # 3. Eliminar puntuación (a menudo es ruido en las celdas)
-    # Se usa el método str.maketrans para una eliminación eficiente
-    # string.punctuation no incluye ¿ ni ¡, así que los añadimos manualmente
+    # 3. Remove punctuation (often noise in cells)
+    # Using str.maketrans for efficient removal
+    # string.punctuation doesn't include ¿ or ¡, so we add them manually
     puntuacion_extra = '¿¡'
     tabla_puntuacion = str.maketrans('', '', string.punctuation + puntuacion_extra)
     texto_limpio = texto_limpio.translate(tabla_puntuacion)
     
-    # 4. Convertir a minúsculas y estandarizar espacios
-    # Esto garantiza consistencia: "  Madrid " -> "madrid"
+    # 4. Convert to lowercase and standardize spaces
+    # This guarantees consistency: "  Madrid " -> "madrid"
     texto_limpio = texto_limpio.lower().strip()
     
-    # 5. Estandarizar espacios múltiples a uno solo (si quedaron)
+    # 5. Standardize multiple spaces to single space
     texto_limpio = ' '.join(texto_limpio.split())
     
     return texto_limpio

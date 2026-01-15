@@ -1,50 +1,48 @@
 import unicodedata
 
-def limpiar_cabeceras_string(texto: str) -> str:
+def clean_header(texto: str) -> str:
     """
-    Normaliza una cadena de texto para usarla como nombre de columna (cabecera).
-    Realiza las siguientes transformaciones:
-    1. Elimina tildes, diéresis y transforma la ñ (usando Normalización NFD).
-    2. Convierte todo a minúsculas.
-    3. Reemplaza espacios, guiones y caracteres no alfanuméricos por guiones bajos ('_').
-    4. Elimina guiones bajos duplicados o iniciales/finales.
+    Normalizes a text string for use as a column name (header).
+    Performs the following transformations:
+    1. Removes accents, diereses, and transforms 'ñ' (using NFD Normalization).
+    2. Converts everything to lowercase.
+    3. Replaces spaces, hyphens, and non-alphanumeric characters with underscores ('_').
+    4. Removes duplicate, leading, or trailing underscores.
 
     Args:
-        texto (str): La cadena de texto de la cabecera original (ej. "Año-Región (Sur)").
+        texto (str): The original header string (e.g., "Año-Región (Sur)").
     
     Returns:
-        str: La cadena limpia en snake_case (ej. "ano_region_sur").
+        str: The clean string in snake_case (e.g., "ano_region_sur").
     """
-    # 1. Normalización NFD: Descompone los caracteres acentuados en 
-    #    carácter base + marca de acento.
+    # 1. NFD Normalization: Decomposes accented characters into 
+    #    base character + combining character.
     texto_normalizado = unicodedata.normalize('NFD', texto)
     
-    # 2. Quitar los diacríticos (marcas de acento)
-    #    Se filtra solo si el carácter no es una marca diacrítica ('Mn')
+    # 2. Remove diacritics (accent marks)
+    #    Filter only if the character is not a non-spacing mark ('Mn')
     texto_sin_acentos = ''.join(
         c for c in texto_normalizado if unicodedata.category(c) != 'Mn'
     )
     
-    # 3. Convertir a minúsculas
+    # 3. Convert to lowercase
     texto_final = texto_sin_acentos.lower()
     
-    # 4. Reemplazar caracteres no deseados por un espacio temporal, 
-    #    excepto letras, números y guiones bajos (que ya incluiremos).
-    #    Aquí se usa un enfoque simple con .replace(), ya que no queremos 
-    #    depender de 're' (aunque 're' también es de la PSL).
+    # 4. Replace unwanted characters with a temporary placeholder, 
+    #    except letters, numbers, and underscores (which we will include).
     
-    # Reemplazar caracteres problemáticos por '_'
+    # Replace problematic characters with '_'
     for char in [' ', '-', '(', ')', '/', '\\', '[', ']', '.', ',', '¿', '?']:
         texto_final = texto_final.replace(char, '_')
 
-    # 5. Eliminar cualquier carácter que no sea alfanumérico o guion bajo
+    # 5. Remove any character that is not alphanumeric or underscore
     texto_snake = ''.join(
         c if c.isalnum() or c == '_' else '' for c in texto_final
     )
     
-    # 6. Eliminar guiones bajos duplicados (__) y guiones iniciales/finales
+    # 6. Remove duplicate underscores (__) and leading/trailing underscores
     while '__' in texto_snake:
         texto_snake = texto_snake.replace('__', '_')
     
-    return texto_snake.strip('_') # Elimina el '_' inicial/final
+    return texto_snake.strip('_') # Removes leading/trailing '_'
 
