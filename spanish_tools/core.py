@@ -14,20 +14,23 @@ def load_data(
     **kwargs
 ) -> Optional[pd.DataFrame]:
     """
-    Loads a file (CSV or Excel) and normalizes its headers and content encoding.
+    Loads a file (CSV, Excel, ODS, XML) or clipboard data.
+    Normalizes headers (snake_case) and fixes content encoding (mojibake).
 
-    1.  Detects file type (.csv, .xls, .xlsx).
-    2.  Sets defaults for Spanish formats (CSV: sep=';', decimal=',').
-    3.  Fixes mojibake in all text columns automatically.
-    4.  Cleans column names to 'snake_case'.
+    Supported Formats:
+    - CSV (`.csv`): Auto-configured for Spanish (sep=';', decimal=',').
+    - Excel (`.xls`, `.xlsx`): Wraps `pd.read_excel`.
+    - OpenDocument (`.ods`): Wraps `pd.read_excel(engine='odf')`.
+    - XML (`.xml`): Wraps `pd.read_xml`.
+    - Clipboard: Pass "clipboard" as `ruta_archivo`.
 
     Args:
-        ruta_archivo (str): Path to the file.
-        separador (str): Delimiter for CSV (default: ';'). Ignored for Excel.
-        **kwargs: Standard pandas arguments passed to read_csv or read_excel.
+        ruta_archivo (str): Path to file OR "clipboard".
+        separador (str): Delimiter for CSV (default: ';').
+        **kwargs: Standard pandas arguments.
 
     Returns:
-        pd.DataFrame | None: Loaded DataFrame with clean headers.
+        pd.DataFrame | None: Loaded & cleaned DataFrame.
     """
     try:
         import pandas as pd
@@ -35,33 +38,49 @@ def load_data(
         print("❌ Error: Pandas not installed. This function requires pandas.")
         return None
 
-    ruta_path = pathlib.Path(ruta_archivo)
-    extension = ruta_path.suffix.lower()
-    
-    print(f"1. Loading '{ruta_path.name}'...")
-    
-    try:
-        if extension in ['.xls', '.xlsx']:
-            # Excel Loader
-            df = pd.read_excel(str(ruta_path), **kwargs)
-        else:
-            # CSV Loader (Default)
-            # 1. Regional Configuration
-            localizacion_kwargs = {
-                'sep': separador,
-                'decimal': ',', 
-                'thousands': '.',
-                'encoding': 'utf8',
-            }
-            config_final = {**localizacion_kwargs, **kwargs}
-            df = pd.read_csv(str(ruta_path), **config_final)
-            
-    except FileNotFoundError:
-        print(f"❌ Error: File not found: {ruta_archivo}")
-        return None
-    except Exception as e:
-        print(f"❌ Error loading file: {e}")
-        return None
+    # 1. Special Source: Clipboard
+    if ruta_archivo.lower() == "clipboard":
+        print("📋 Loading from Clipboard...")
+        try:
+            df = pd.read_clipboard(**kwargs)
+            # Clipboard often comes "dirty", so this pipeline is perfect.
+        except Exception as e:
+            print(f"❌ Error reading clipboard: {e}")
+            return None
+    else:
+        # File Loading
+        ruta_path = pathlib.Path(ruta_archivo)
+        extension = ruta_path.suffix.lower()
+        
+        print(f"1. Loading '{ruta_path.name}'...")
+        
+        try:
+            if extension in ['.xls', '.xlsx']:
+                # Excel
+                df = pd.read_excel(str(ruta_path), **kwargs)
+            elif extension == '.ods':
+                # OpenDocument
+                df = pd.read_excel(str(ruta_path), engine="odf", **kwargs)
+            elif extension == '.xml':
+                # XML
+                df = pd.read_xml(str(ruta_path), **kwargs)
+            else:
+                # CSV (Default)
+                localizacion_kwargs = {
+                    'sep': separador,
+                    'decimal': ',', 
+                    'thousands': '.',
+                    'encoding': 'utf8',
+                }
+                config_final = {**localizacion_kwargs, **kwargs}
+                df = pd.read_csv(str(ruta_path), **config_final)
+                
+        except FileNotFoundError:
+            print(f"❌ Error: File not found: {ruta_archivo}")
+            return None
+        except Exception as e:
+            print(f"❌ Error loading file: {e}")
+            return None
 
     # 2. Fix Mojibake in Content (Global Fix)
     # We apply this to all string columns to ensure correct encoding

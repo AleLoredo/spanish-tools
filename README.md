@@ -65,7 +65,7 @@ print(df.head())
 ### 1. Loading and Processing (`spanish_tools.core`)
 
 #### `spa.load_data`
-Universal loader for CSV and Excel files. Wraps `pandas` and applies automatic Spanish-focused cleaning (headers + encoding).
+Universal loader for CSV, Excel, ODS, XML, and Clipboard. Wraps `pandas` and applies automatic Spanish-focused cleaning.
 
 ```python
 def load_data(
@@ -75,12 +75,19 @@ def load_data(
 ) -> Optional[pd.DataFrame]
 ```
 
+#### Supported Formats:
+*   **CSV** (`.csv`): Auto-configured for Spanish standards (`;`, `,`).
+*   **Excel** (`.xls`, `.xlsx`): Standard Excel files.
+*   **OpenDocument** (`.ods`): Common in Public Administration.
+*   **XML** (`.xml`): Generic XML parsing.
+*   **Clipboard**: Use `spa.load_data("clipboard")` to load copied data.
+
 #### Useful Pandas Arguments (`**kwargs`)
 You can customize the loading by passing any standard pandas arguments:
 
 | Argument | Description | Example |
 | :--- | :--- | :--- |
-| `sheet_name` | (Excel) specific sheet to load. | `sheet_name='DataV1'` |
+| `sheet_name` | (Excel/ODS) specific sheet to load. | `sheet_name='DataV1'` |
 | `encoding` | (CSV) Fixes strange characters. | `encoding='latin1'` |
 | `parse_dates` | Automatically converts columns to datetime. | `parse_dates=['date']` |
 | `dtype` | Forces data type. | `dtype={'dni': str}` |

@@ -38,27 +38,54 @@ class TestCore(unittest.TestCase):
                 self.assertEqual(call_kwargs['decimal'], ',')
                 self.assertEqual(call_kwargs['sep'], ';')
 
-    def test_load_data_excel_success(self):
-        """Test simple Excel load"""
+    def test_load_data_clipboard(self):
+        """Test clipboard loading"""
         mock_pd = MagicMock()
         mock_df = MagicMock()
-        with patch('pathlib.Path') as mock_path:
-            mock_path.return_value.suffix.lower.return_value = '.xlsx'
-            mock_path.return_value.name = 'datos.xlsx'
+        mock_df.columns = ['Columna_1']
+        mock_pd.read_clipboard.return_value = mock_df
+        
+        with patch.dict('sys.modules', {'pandas': mock_pd}):
+            df = load_data('clipboard')
             
-            mock_df.columns = ['Columna 1']
-            mock_pd.read_excel.return_value = mock_df
+            mock_pd.read_clipboard.assert_called_once()
+            # Check cleaning happened
+            mock_df.rename.assert_called_once()
+
+    def test_load_data_ods(self):
+        """Test ODS loading"""
+        mock_pd = MagicMock()
+        mock_df = MagicMock()
+        mock_df.columns = ['Columna_1']
+        mock_pd.read_excel.return_value = mock_df
+        
+        with patch('pathlib.Path') as mock_path:
+            mock_path.return_value.suffix.lower.return_value = '.ods'
+            mock_path.return_value.name = 'datos.ods'
             
             with patch.dict('sys.modules', {'pandas': mock_pd}):
-                df = load_data('datos.xlsx', sheet_name='Sheet1')
+                df = load_data('datos.ods')
                 
+                # Check engine='odf' passed to read_excel
                 mock_pd.read_excel.assert_called()
-                # Check args passed to read_excel
                 call_kwargs = mock_pd.read_excel.call_args[1]
-                self.assertEqual(call_kwargs['sheet_name'], 'Sheet1')
+                self.assertEqual(call_kwargs['engine'], 'odf')
+
+    def test_load_data_xml(self):
+        """Test XML loading"""
+        mock_pd = MagicMock()
+        mock_df = MagicMock()
+        mock_df.columns = ['Columna_1']
+        mock_pd.read_xml.return_value = mock_df
+        
+        with patch('pathlib.Path') as mock_path:
+            mock_path.return_value.suffix.lower.return_value = '.xml'
+            mock_path.return_value.name = 'datos.xml'
+            
+            with patch.dict('sys.modules', {'pandas': mock_pd}):
+                df = load_data('datos.xml')
                 
-                # Check cleaning still happens
-                mock_df.rename.assert_called_once()
+                mock_pd.read_xml.assert_called_once()
 
     def test_clean_text_basic(self):
         """Test text cleaning on specific columns of an existing DF"""
