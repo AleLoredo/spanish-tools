@@ -1,0 +1,30 @@
+# General
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Environments
+.env
+.venv/
+env/
+venv/
+ENV/
+
+# Distribution / Packaging
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# IDEs
+.idea/
+.vscode/
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
