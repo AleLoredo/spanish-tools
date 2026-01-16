@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "spanish_tools"
-version = "0.1.0"
+version = "0.1.1"
 description = "Intelligent data processing tools for Spanish datasets (encoding, dates, numbers)."
 readme = "README.md"
 requires-python = ">=3.7"

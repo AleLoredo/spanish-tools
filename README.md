@@ -4,25 +4,24 @@
 [![Python Version](https://img.shields.io/pypi/pyversions/spanish-tools)](https://pypi.org/project/spanish-tools/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Spanish Tools** is a Python library specifically designed to simplify the analysis and processing of Spanish language data. It efficiently handles common issues such as encoding, regional numeric formats (decimal comma), dates, and text normalization (accents, 'ñ').
+**Spanish Tools** is a Python library specifically designed to simplify the loading of Spanish language datasets for processing purposes. It  aids with fixing encoding issues, regional numeric formats (decimal comma), dates, and text normalization (accents, 'ñ') using just one function. It is built on top of pandas and is compatible with any pandas DataFrame.
 
-## 🚀 Installation
-
-### Standard Installation (PyPI)
+## 🚀 Install
 ```bash
 pip install spanish_tools
 ```
-
-### Installation in Google Colab
-To install the latest development version directly from GitHub:
+## Import
 ```python
-!pip install spanish_tools
+import spanish_tools as spa
 ```
-> **Note:** If you are using the CSV loading functions (`spanish_tools.core`), ensure `pandas` is installed (included by default in Colab and Anaconda).
+## Load Data and apply cleaning automatically
+```python
+df = spa.load_data("sales_2024.xlsx")
+```
 
-## ⚡ Quick Start
+For a more detailed walkthrough, continue reading.
 
-"Pandas-style" loading and cleaning in two simple steps:
+## ⚡ Detailed walkthrough
 
 ```python
 import spanish_tools as spa
@@ -30,8 +29,8 @@ import spanish_tools as spa
 # 1. Load Data (Universal: CSV, Excel, etc.)
 # This works for .csv, .xls, and .xlsx automatically.
 # - Sets Spanish defaults (dec=',', sep=';') for CSVs.
-# - Cleans headers to snake_case.
-# - Fixes encoding (mojibake) in all text columns.
+# - Cleans headers to snake_case and removes any spanish special character such as 'ñ', 'á', 'é', 'í', 'ó', 'ú', 'ü'.
+# - In case of encoding issues, it applyes an automatic fix to encoding (mojibake) in all text columns.
 df = spa.load_data("sales_2024.xlsx")
 
 # You can still pass pandas arguments:
