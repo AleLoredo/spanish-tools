@@ -17,7 +17,9 @@ classifiers = [
     "Natural Language :: Spanish",
 ]
 dependencies = [
-    "pandas>=1.0.0"
+    "pandas>=1.0.0",
+    "openpyxl>=3.0.0",
+    "xlrd>=2.0.0"
 ]
 
 [project.urls]

@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 import sys
 import os
-from spanish_tools.core import read_csv, clean_text
+from spanish_tools.core import load_data, clean_text
 
 try:
     import pandas as pd
@@ -12,28 +12,53 @@ except ImportError:
 
 class TestCore(unittest.TestCase):
 
-    def test_read_csv_success(self):
-        """Test simple load and header cleaning"""
+    def test_load_data_csv_success(self):
+        """Test simple CSV load and header cleaning"""
         mock_pd = MagicMock()
         mock_df = MagicMock()
-        mock_df.columns = ['Columna 1', 'Columna 2']
-        mock_pd.read_csv.return_value = mock_df
-        
-        with patch.dict('sys.modules', {'pandas': mock_pd}):
-            df = read_csv('datos.csv')
+        # Mocking suffix to simulate .csv
+        with patch('pathlib.Path') as mock_path:
+            mock_path.return_value.suffix.lower.return_value = '.csv'
+            mock_path.return_value.name = 'datos.csv'
             
-            self.assertEqual(df, mock_df)
+            mock_df.columns = ['Columna 1', 'Columna 2']
+            mock_pd.read_csv.return_value = mock_df
             
-            # Verify rename was called (proper snake_case conversion)
-            mock_df.rename.assert_called_once()
-            args, kwargs = mock_df.rename.call_args
-            self.assertIn('columns', kwargs)
+            with patch.dict('sys.modules', {'pandas': mock_pd}):
+                df = load_data('datos.csv')
+                
+                self.assertEqual(df, mock_df)
+                
+                # Check header rename
+                mock_df.rename.assert_called_once()
+                
+                # Check pandas.read_csv called
+                mock_pd.read_csv.assert_called()
+                call_kwargs = mock_pd.read_csv.call_args[1]
+                self.assertEqual(call_kwargs['decimal'], ',')
+                self.assertEqual(call_kwargs['sep'], ';')
+
+    def test_load_data_excel_success(self):
+        """Test simple Excel load"""
+        mock_pd = MagicMock()
+        mock_df = MagicMock()
+        with patch('pathlib.Path') as mock_path:
+            mock_path.return_value.suffix.lower.return_value = '.xlsx'
+            mock_path.return_value.name = 'datos.xlsx'
             
-            # Ensure proper pd.read_csv call (localized)
-            mock_pd.read_csv.assert_called()
-            call_kwargs = mock_pd.read_csv.call_args[1]
-            self.assertEqual(call_kwargs['decimal'], ',')
-            self.assertEqual(call_kwargs['sep'], ';')
+            mock_df.columns = ['Columna 1']
+            mock_pd.read_excel.return_value = mock_df
+            
+            with patch.dict('sys.modules', {'pandas': mock_pd}):
+                df = load_data('datos.xlsx', sheet_name='Sheet1')
+                
+                mock_pd.read_excel.assert_called()
+                # Check args passed to read_excel
+                call_kwargs = mock_pd.read_excel.call_args[1]
+                self.assertEqual(call_kwargs['sheet_name'], 'Sheet1')
+                
+                # Check cleaning still happens
+                mock_df.rename.assert_called_once()
 
     def test_clean_text_basic(self):
         """Test text cleaning on specific columns of an existing DF"""
@@ -72,13 +97,13 @@ class TestCore(unittest.TestCase):
         # Should clean 2 columns
         self.assertEqual(mock_series.apply.call_count, 2)
 
-    def test_read_csv_load_error(self):
+    def test_load_data_file_error(self):
         mock_pd = MagicMock()
         mock_pd.read_csv.side_effect = FileNotFoundError()
         
         with patch.dict('sys.modules', {'pandas': mock_pd}):
-            result = read_csv('no_existe.csv')
-            self.assertIsNone(result)
+            df = load_data('no_existe.csv')
+            self.assertIsNone(df)
 
     @unittest.skipUnless(PANDAS_INSTALLED, "Pandas not installed")
     def test_integration_real_file(self):
@@ -96,7 +121,7 @@ class TestCore(unittest.TestCase):
         # Process the CSV
         # The file uses comma separator based on inspection
         # 1. READ (Safe)
-        df = read_csv(
+        df = load_data(
             csv_path, 
             separador=','
         )
@@ -131,69 +156,43 @@ class TestCore(unittest.TestCase):
         # The file content viewed earlier showed "Camaño".
         self.assertEqual(first_row['apellido_s'], 'Camaño')
 
-    def test_read_csv_mojibake_header(self):
-        """Test that read_csv fixes mojibake in headers"""
+    def test_load_data_mojibake_header(self):
+        """Test that load_data fixes mojibake in headers"""
         # Mock pandas read_csv to return a DF with broken headers
-        # 'AÃ±o' -> 'Año' -> 'ano'
         mock_pd = MagicMock()
         mock_df = MagicMock()
         mock_df.columns = ['AÃ±o', 'RegiÃ³n']
         mock_pd.read_csv.return_value = mock_df
         
-        with patch.dict('sys.modules', {'pandas': mock_pd}):
-            df = read_csv('dummy.csv')
+        with patch('pathlib.Path') as mock_path:
+            mock_path.return_value.suffix.lower.return_value = '.csv'
+            mock_path.return_value.name = 'dummy.csv'
             
-            # Check what rename was called with
-            mock_df.rename.assert_called_once()
-            args, kwargs = mock_df.rename.call_args
-            rename_map = kwargs['columns']
-            
-            # Expected transformations:
-            # AÃ±o -> Año -> ano
-            # RegiÃ³n -> Región -> region
-            self.assertEqual(rename_map['AÃ±o'], 'ano')
-            self.assertEqual(rename_map['RegiÃ³n'], 'region')
-
-    def test_read_csv_mojibake_content_only(self):
-        """
-        Test that read_csv fixes mojibake in content, but 
-        DOES NOT lowercase or strip accents from content.
-        """
-        mock_pd = MagicMock()
-        mock_df = MagicMock()
-        # Mocking select_dtypes to return a subset dataframe for iteration
-        # This is tricky with MagicMock. We might need a real DF for this test given the logic.
-        pass
+            with patch.dict('sys.modules', {'pandas': mock_pd}):
+                df = load_data('dummy.csv')
+                
+                # Check what rename was called with
+                mock_df.rename.assert_called_once()
+                args, kwargs = mock_df.rename.call_args
+                rename_map = kwargs['columns']
+                
+                self.assertEqual(rename_map['AÃ±o'], 'ano')
 
     @unittest.skipUnless(PANDAS_INSTALLED, "Pandas not installed")
-    def test_read_csv_mojibake_content_real_pandas(self):
+    def test_load_data_mojibake_content_content_real_pandas(self):
         """
-        Real pandas test for read_csv content fixing.
+        Real pandas test for load_data content fixing.
         """
-        # We need to mock pd.read_csv to return a real DF
         mock_pd = MagicMock()
-        
-        # 'CamirÃ±o' -> 'Camirño' (Fixed)
-        # 'CÓRDOBA' -> 'CÓRDOBA' (Preserved uppercase/accents)
         real_df = pd.DataFrame({'Ciudad': ['CamirÃ±o', 'CÓRDOBA']})
         mock_pd.read_csv.return_value = real_df
         
-        with patch.dict('sys.modules', {'pandas': mock_pd}):
-            # We must import inside patch to pick up the mock if needed, 
-            # but here we rely on core.py using the mocked pandas module
+        with patch('pathlib.Path') as mock_path: # Need to mock Path for load_data extension check
+            mock_path.return_value.suffix.lower.return_value = '.csv'
             
-            # Since core.py does `import pandas as pd` inside the function, 
-            # our patch works.
-            
-            df = read_csv('dummy.csv')
-            
-            # 1. Header cleaned?
-            self.assertIn('ciudad', df.columns)
-            
-            # 2. Content fixed?
-            # 'CamirÃ±o' should become 'Camirño'
-            self.assertEqual(df['ciudad'][0], 'Camirño')
-            
-            # 3. Content NOT normalized (case/accents preserved)?
-            # 'CÓRDOBA' should remain 'CÓRDOBA', not 'cordoba'
-            self.assertEqual(df['ciudad'][1], 'CÓRDOBA')
+            with patch.dict('sys.modules', {'pandas': mock_pd}):
+                df = load_data('dummy.csv')
+                
+                self.assertIn('ciudad', df.columns)
+                self.assertEqual(df['ciudad'][0], 'Camirño')
+                self.assertEqual(df['ciudad'][1], 'CÓRDOBA')

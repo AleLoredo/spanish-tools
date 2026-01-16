@@ -27,15 +27,18 @@ To install the latest development version directly from GitHub:
 ```python
 import spanish_tools as spa
 
-# 1. Load Data (Safe & Configurable)
-# This will load a Spanish CSV (separator ';') and clean all column names.
-# You can pass ANY pandas argument here (dtype, parse_dates, etc.)
-df = spa.read_csv(
-    "sales_2024.csv",
-    parse_dates=["sale_date"],  # Convert to datetime
-    dtype={"dni": str},         # Force text type
-    dayfirst=True,              # Spanish date format (DD/MM/YYYY)
-    na_values=['-', 'N/A']      # Custom null values
+# 1. Load Data (Universal: CSV, Excel, etc.)
+# This works for .csv, .xls, and .xlsx automatically.
+# - Sets Spanish defaults (dec=',', sep=';') for CSVs.
+# - Cleans headers to snake_case.
+# - Fixes encoding (mojibake) in all text columns.
+df = spa.load_data("sales_2024.xlsx")
+
+# You can still pass pandas arguments:
+df_csv = spa.load_data(
+    "sales_old.csv", 
+    encoding="latin1", 
+    parse_dates=["fecha"]
 )
 
 # 2. Clean Text (Explicit)
@@ -47,25 +50,25 @@ df = spa.clean_text(df, fields=["comments", "city"])
 df = spa.clean_text(df, fields="all", remove_accents=True)
 
 print(df.head())
-# Columns: 'sale_date', 'city' (snake_case headers)
-# Content: 'madrid' (clean text)
+# Columns: 'fecha', 'ciudad' (snake_case headers)
+# Content: 'malaga' (clean text)
 ```
 
 ## ✨ Key Features
 
-*   **"Pandas-Native" UX**: Intuitive functions (`read_csv`, `clean_text`) that integrate naturally into your workflow.
-*   **Text Normalization**: Robust tools to remove accents, handle 'ñ', and standardize casing.
-*   **Header Cleaning**: Converts "dirty" column names (with spaces, accents, symbols) into clean, programmable `snake_case`.
+*   **Universal Loader**: `load_data` handles CSV and Excel files seamlessly.
+*   **Auto-Cleaning**: Automatically fixes mojibake (encoding errors) and normalizes headers upon loading.
+*   **"Pandas-Native" UX**: Intuitive functions that integrate naturally into your workflow.
 
 ## 📚 API Reference
 
 ### 1. Loading and Processing (`spanish_tools.core`)
 
-#### `spa.read_csv`
-Localized wrapper for `pandas.read_csv` that loads the file and cleans its headers.
+#### `spa.load_data`
+Universal loader for CSV and Excel files. Wraps `pandas` and applies automatic Spanish-focused cleaning (headers + encoding).
 
 ```python
-def read_csv(
+def load_data(
     ruta_archivo: str,
     separador: str = ';',
     **kwargs
@@ -73,16 +76,14 @@ def read_csv(
 ```
 
 #### Useful Pandas Arguments (`**kwargs`)
-You can customize the loading by passing any of these common arguments directly to `read_csv`:
+You can customize the loading by passing any standard pandas arguments:
 
 | Argument | Description | Example |
 | :--- | :--- | :--- |
-| `encoding` | Fixes strange characters (broken accents). | `encoding='latin1'` (Old Excel) |
+| `sheet_name` | (Excel) specific sheet to load. | `sheet_name='DataV1'` |
+| `encoding` | (CSV) Fixes strange characters. | `encoding='latin1'` |
 | `parse_dates` | Automatically converts columns to datetime. | `parse_dates=['date']` |
-| `dayfirst` | **Crucial in Spanish.** Interprets `01/02` as Feb 1st. | `dayfirst=True` |
-| `dtype` | Forces data type (e.g., preserve leading zeros in IDs). | `dtype={'dni': str}` |
-| `skiprows` | Skips initial lines (titles, logos). | `skiprows=3` |
-| `na_values` | Defines what text counts as "null data". | `na_values=['-', 'N/A']` |
+| `dtype` | Forces data type. | `dtype={'dni': str}` |
 
 ---
 

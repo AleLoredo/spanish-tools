@@ -8,22 +8,23 @@ if TYPE_CHECKING:
 from .normalization import clean_header
 from .cleaning import clean_string
 
-def read_csv(
+def load_data(
     ruta_archivo: str,
     separador: str = ';',
     **kwargs
 ) -> Optional[pd.DataFrame]:
     """
-    Loads a CSV file with Spanish regional configuration and normalizes its headers.
+    Loads a file (CSV or Excel) and normalizes its headers and content encoding.
 
-    It's a "supercharged" wrapper for pandas.read_csv that:
-    1.  Sets defaults for decimal (',') and separators (';') for Spain/Latam.
-    2.  Automatically cleans column names to 'snake_case'.
+    1.  Detects file type (.csv, .xls, .xlsx).
+    2.  Sets defaults for Spanish formats (CSV: sep=';', decimal=',').
+    3.  Fixes mojibake in all text columns automatically.
+    4.  Cleans column names to 'snake_case'.
 
     Args:
-        ruta_archivo (str): Path to the CSV file.
-        separador (str): Delimiter (default: ';').
-        **kwargs: Standard pandas.read_csv arguments (encoding, dtype, etc.).
+        ruta_archivo (str): Path to the file.
+        separador (str): Delimiter for CSV (default: ';'). Ignored for Excel.
+        **kwargs: Standard pandas arguments passed to read_csv or read_excel.
 
     Returns:
         pd.DataFrame | None: Loaded DataFrame with clean headers.
@@ -34,20 +35,27 @@ def read_csv(
         print("❌ Error: Pandas not installed. This function requires pandas.")
         return None
 
-    # 1. Regional Configuration
-    localizacion_kwargs = {
-        'sep': separador,
-        'decimal': ',', 
-        'thousands': '.',
-        'encoding': 'utf8',
-    }
-    config_final = {**localizacion_kwargs, **kwargs}
-    
     ruta_path = pathlib.Path(ruta_archivo)
+    extension = ruta_path.suffix.lower()
+    
     print(f"1. Loading '{ruta_path.name}'...")
     
     try:
-        df = pd.read_csv(str(ruta_path), **config_final)
+        if extension in ['.xls', '.xlsx']:
+            # Excel Loader
+            df = pd.read_excel(str(ruta_path), **kwargs)
+        else:
+            # CSV Loader (Default)
+            # 1. Regional Configuration
+            localizacion_kwargs = {
+                'sep': separador,
+                'decimal': ',', 
+                'thousands': '.',
+                'encoding': 'utf8',
+            }
+            config_final = {**localizacion_kwargs, **kwargs}
+            df = pd.read_csv(str(ruta_path), **config_final)
+            
     except FileNotFoundError:
         print(f"❌ Error: File not found: {ruta_archivo}")
         return None
@@ -61,10 +69,6 @@ def read_csv(
     from .cleaning import fix_mojibake
     
     for col in df.select_dtypes(include=['object', 'string']):
-        # We use map for potential speedup over apply, handling NaNs gracefully if needed
-        # df[col] = df[col].astype(str).map(fix_mojibake) 
-        # But to be safe with NaNs (which shouldn't be cast to string 'nan' blindly if we want to keep them null)
-        # we can just use apply with a check or reliance on fix_mojibake handling non-strings (it returns as is).
         df[col] = df[col].apply(fix_mojibake)
 
     # 3. Header Cleaning
