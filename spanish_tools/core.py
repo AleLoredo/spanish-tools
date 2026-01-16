@@ -55,10 +55,22 @@ def read_csv(
         print(f"❌ Error loading file: {e}")
         return None
 
-    # 2. Header Cleaning
+    # 2. Fix Mojibake in Content (Global Fix)
+    # We apply this to all string columns to ensure correct encoding
+    # WITHOUT normalizing or changing case in the content.
+    from .cleaning import fix_mojibake
+    
+    for col in df.select_dtypes(include=['object', 'string']):
+        # We use map for potential speedup over apply, handling NaNs gracefully if needed
+        # df[col] = df[col].astype(str).map(fix_mojibake) 
+        # But to be safe with NaNs (which shouldn't be cast to string 'nan' blindly if we want to keep them null)
+        # we can just use apply with a check or reliance on fix_mojibake handling non-strings (it returns as is).
+        df[col] = df[col].apply(fix_mojibake)
+
+    # 3. Header Cleaning
     nombre_columnas_map = {col: clean_header(col) for col in df.columns}
     df.rename(columns=nombre_columnas_map, inplace=True)
-    print("✅ Load complete. Headers normalized.")
+    print("✅ Load complete. Mojibake fixed globally. Headers normalized.")
     return df
 
 def clean_text(

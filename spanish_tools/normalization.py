@@ -1,13 +1,16 @@
 import unicodedata
 
+from .cleaning import fix_mojibake
+
 def clean_header(texto: str) -> str:
     """
     Normalizes a text string for use as a column name (header).
     Performs the following transformations:
-    1. Removes accents, diereses, and transforms 'ñ' (using NFD Normalization).
-    2. Converts everything to lowercase.
-    3. Replaces spaces, hyphens, and non-alphanumeric characters with underscores ('_').
-    4. Removes duplicate, leading, or trailing underscores.
+    1. Fixes Mojibake (Encoding errors).
+    2. Removes accents, diereses, and transforms 'ñ' (using NFD Normalization).
+    3. Converts everything to lowercase.
+    4. Replaces spaces, hyphens, and non-alphanumeric characters with underscores ('_').
+    5. Removes duplicate, leading, or trailing underscores.
 
     Args:
         texto (str): The original header string (e.g., "Año-Región (Sur)").
@@ -15,6 +18,9 @@ def clean_header(texto: str) -> str:
     Returns:
         str: The clean string in snake_case (e.g., "ano_region_sur").
     """
+    # 0. Fix Mojibake (Encoding errors)
+    texto = fix_mojibake(texto)
+
     # 1. NFD Normalization: Decomposes accented characters into 
     #    base character + combining character.
     texto_normalizado = unicodedata.normalize('NFD', texto)

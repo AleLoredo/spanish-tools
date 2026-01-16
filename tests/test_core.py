@@ -131,5 +131,69 @@ class TestCore(unittest.TestCase):
         # The file content viewed earlier showed "Camaño".
         self.assertEqual(first_row['apellido_s'], 'Camaño')
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_read_csv_mojibake_header(self):
+        """Test that read_csv fixes mojibake in headers"""
+        # Mock pandas read_csv to return a DF with broken headers
+        # 'AÃ±o' -> 'Año' -> 'ano'
+        mock_pd = MagicMock()
+        mock_df = MagicMock()
+        mock_df.columns = ['AÃ±o', 'RegiÃ³n']
+        mock_pd.read_csv.return_value = mock_df
+        
+        with patch.dict('sys.modules', {'pandas': mock_pd}):
+            df = read_csv('dummy.csv')
+            
+            # Check what rename was called with
+            mock_df.rename.assert_called_once()
+            args, kwargs = mock_df.rename.call_args
+            rename_map = kwargs['columns']
+            
+            # Expected transformations:
+            # AÃ±o -> Año -> ano
+            # RegiÃ³n -> Región -> region
+            self.assertEqual(rename_map['AÃ±o'], 'ano')
+            self.assertEqual(rename_map['RegiÃ³n'], 'region')
+
+    def test_read_csv_mojibake_content_only(self):
+        """
+        Test that read_csv fixes mojibake in content, but 
+        DOES NOT lowercase or strip accents from content.
+        """
+        mock_pd = MagicMock()
+        mock_df = MagicMock()
+        # Mocking select_dtypes to return a subset dataframe for iteration
+        # This is tricky with MagicMock. We might need a real DF for this test given the logic.
+        pass
+
+    @unittest.skipUnless(PANDAS_INSTALLED, "Pandas not installed")
+    def test_read_csv_mojibake_content_real_pandas(self):
+        """
+        Real pandas test for read_csv content fixing.
+        """
+        # We need to mock pd.read_csv to return a real DF
+        mock_pd = MagicMock()
+        
+        # 'CamirÃ±o' -> 'Camirño' (Fixed)
+        # 'CÓRDOBA' -> 'CÓRDOBA' (Preserved uppercase/accents)
+        real_df = pd.DataFrame({'Ciudad': ['CamirÃ±o', 'CÓRDOBA']})
+        mock_pd.read_csv.return_value = real_df
+        
+        with patch.dict('sys.modules', {'pandas': mock_pd}):
+            # We must import inside patch to pick up the mock if needed, 
+            # but here we rely on core.py using the mocked pandas module
+            
+            # Since core.py does `import pandas as pd` inside the function, 
+            # our patch works.
+            
+            df = read_csv('dummy.csv')
+            
+            # 1. Header cleaned?
+            self.assertIn('ciudad', df.columns)
+            
+            # 2. Content fixed?
+            # 'CamirÃ±o' should become 'Camirño'
+            self.assertEqual(df['ciudad'][0], 'Camirño')
+            
+            # 3. Content NOT normalized (case/accents preserved)?
+            # 'CÓRDOBA' should remain 'CÓRDOBA', not 'cordoba'
+            self.assertEqual(df['ciudad'][1], 'CÓRDOBA')

@@ -4,6 +4,23 @@ Module for cleaning Spanish text.
 import unicodedata
 import string
 
+
+def fix_mojibake(text: str) -> str:
+    """
+    Fixes common UTF-8 encoding errors (mojibake).
+    Example: 'Ã±' -> 'ñ', 'Ã¡' -> 'á'
+    """
+    if not isinstance(text, str):
+        return text
+        
+    try:
+        # Generic heuristic: encode latin1, decode utf-8
+        # This fixes the most common double-encoding issues in Spanish
+        return text.encode('latin1').decode('utf-8')
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        # If it fails, it means it's likely already correct or a different issue
+        return text
+
 def clean_string(texto: str, remove_accents: bool = True) -> str:
     """
     Cleans and normalizes a text string within a data cell.
@@ -22,6 +39,9 @@ def clean_string(texto: str, remove_accents: bool = True) -> str:
         # Handling non-string values (e.g., NaN, numbers treated as text)
         return texto 
 
+    # 0. Fix Mojibake (Encoding errors)
+    texto = fix_mojibake(texto)
+    
     # 1. Unicode Normalization: Ensures accented characters have a consistent representation. (NFC is most common)
     texto_limpio = unicodedata.normalize('NFC', texto)
     
