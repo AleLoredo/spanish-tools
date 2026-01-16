@@ -2,7 +2,7 @@ name: Publish Python 🐍 distribution to PyPI
 
 on:
   push:
-    headers:
+    tags:
       # Only run this workflow when a tag starting with 'v' is pushed (e.g. v0.1.0)
       - 'v*'
 
